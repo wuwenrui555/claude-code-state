@@ -35,7 +35,7 @@ work.
 
 The package is split into two concerns:
 
-```
+```text
 claude_code_state/         ← parser core (zero deps, terminal-mux agnostic)
 └── capture/               ← optional helpers, one per terminal multiplexer
     └── tmux.py            ← `tmux capture-pane` wrapper
