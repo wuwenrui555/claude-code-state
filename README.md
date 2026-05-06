@@ -18,8 +18,7 @@ window), classify the running instance into one of:
   the user is being asked to approve).
 
 The package also exposes lower-level building blocks: chrome
-detection, raw status-line extraction, `! cmd` output extraction, and
-`/usage` modal parsing.
+detection, raw status-line extraction, and interactive-UI extraction.
 
 ## Why a package
 
