@@ -29,24 +29,16 @@ CHROME = "─" * 80 + "\n❯\n" + "─" * 80 + "\n  ✓ Auto · Sonnet 4.6 · 0%
 
 # Same chrome with a spinner+status line above it = Working.
 WORKING_PANE = (
-    "Some prior content\n"
-    "\n"
-    "✻ Thinking… (16s · ↑ 827 tokens · thought for 7s)\n"
-    + CHROME
+    "Some prior content\n\n✻ Thinking… (16s · ↑ 827 tokens · thought for 7s)\n" + CHROME
 )
 
-IDLE_PANE = (
-    "Some prior content\n"
-    "\n"
-    + CHROME
-)
+IDLE_PANE = "Some prior content\n\n" + CHROME
 
 # Permission-prompt shape: chrome is gone, replaced by a question +
 # numbered choices + footer. Walkback should pick up the tool preview
 # above the question.
 PERMISSION_PANE = (
-    "Some prior content\n"
-    + ("─" * 80) + "\n"
+    "Some prior content\n" + ("─" * 80) + "\n"
     "Read file\n"
     "/etc/passwd\n"
     "\n"
@@ -58,12 +50,7 @@ PERMISSION_PANE = (
 
 # A completion-summary line (no `…`) above chrome should NOT be classified
 # as Working — it represents a finished turn.
-COMPLETION_PANE = (
-    "Some prior content\n"
-    "\n"
-    "✻ Worked for 56s\n"
-    + CHROME
-)
+COMPLETION_PANE = "Some prior content\n\n✻ Worked for 56s\n" + CHROME
 
 
 def test_import():

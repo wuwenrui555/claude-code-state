@@ -32,10 +32,7 @@ input-chrome check)::
         has_input_chrome,
         parse_status_line,
         extract_interactive_content,
-        extract_bash_output,
-        parse_usage_output,
         InteractiveUIContent,
-        UsageInfo,
     )
 
 Optional capture helpers (one per terminal multiplexer)::
@@ -64,13 +61,10 @@ from __future__ import annotations
 
 from .parser import (
     InteractiveUIContent,
-    UsageInfo,
-    extract_bash_output,
     extract_interactive_content,
     has_input_chrome,
     parse_pane,
     parse_status_line,
-    parse_usage_output,
 )
 from .state import Blocked, BlockedUI, ClaudeState, Dead, Idle, Working
 
@@ -88,10 +82,7 @@ __all__ = [
     "has_input_chrome",
     "parse_status_line",
     "extract_interactive_content",
-    "extract_bash_output",
-    "parse_usage_output",
     "InteractiveUIContent",
-    "UsageInfo",
 ]
 
 __version__ = "0.1.0"
