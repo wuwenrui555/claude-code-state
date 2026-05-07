@@ -284,21 +284,52 @@ _CHROME_SEARCH_WINDOW = 20
 def _has_input_chrome(lines: list[str]) -> bool:
     """True when Claude's input box is rendered at the pane bottom.
 
-    Pattern: a full-width ``────`` separator whose very next line starts
-    with ``❯`` (possibly with user-typed text after). Presence of this
-    sandwich means Claude is in WORKING or IDLE state — no blocking UI.
-    Absence means a UI has taken over the input region.
+    Pattern: a full-width ``────`` separator, a ``❯``-prefixed prompt
+    line (with up to a few continuation lines for multi-line user
+    input), then a second full-width ``────`` separator closing the
+    sandwich. Presence of this sandwich means Claude is in WORKING or
+    IDLE state — no blocking UI. Absence means a UI has taken over
+    the input region.
+
+    The bottom separator is what distinguishes real chrome from
+    unrelated occurrences of ``────\\n❯`` that appear inside other
+    UIs. Notably, AskUserQuestion renders an extra divider between
+    the ``Type something`` row and the trailing ``Chat about this``
+    row, and when the cursor lands on the chat row the pane shows
+    ``────\\n❯ N. Chat about this`` — the top half of a chrome
+    sandwich, but no bottom separator follows.
     """
     if not lines:
         return False
     search_start = max(0, len(lines) - _CHROME_SEARCH_WINDOW)
     for i in range(search_start, len(lines) - 1):
-        stripped = lines[i].strip()
-        if len(stripped) < _CHROME_MIN_LEN or not all(c == "─" for c in stripped):
+        if not _is_chrome_separator(lines[i]):
             continue
-        if lines[i + 1].lstrip().startswith("❯"):
-            return True
+        if not lines[i + 1].lstrip().startswith("❯"):
+            continue
+        # Top separator + ❯ line found. Require a bottom separator
+        # within a small window, allowing for multi-line user input.
+        scan_end = min(i + 2 + _CHROME_INPUT_MAX_LINES, len(lines))
+        for j in range(i + 2, scan_end):
+            if _is_chrome_separator(lines[j]):
+                return True
+        # No bottom separator inside the input window — not chrome.
+        return False
     return False
+
+
+def _is_chrome_separator(line: str) -> bool:
+    stripped = line.strip()
+    if len(stripped) < _CHROME_MIN_LEN:
+        return False
+    return all(c == "─" for c in stripped)
+
+
+# Maximum number of lines between the ``❯`` prompt line and the bottom
+# chrome separator. Single-line user input puts the bottom separator at
+# offset 1 from the prompt; multi-line input (Shift+Enter, paste) can
+# push it further down. Eight lines is a generous upper bound.
+_CHROME_INPUT_MAX_LINES = 8
 
 
 # Public alias — callers outside this module should use this.
