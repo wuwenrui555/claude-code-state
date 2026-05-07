@@ -22,7 +22,6 @@ from claude_code_state import (
     parse_status_line,
 )
 
-
 # A minimal Claude Code pane bottom: chrome separator, prompt, separator,
 # status bar. Any pane that ends with this shape is in Working or Idle.
 CHROME = "─" * 80 + "\n❯\n" + "─" * 80 + "\n  ✓ Auto · Sonnet 4.6 · 0%"
