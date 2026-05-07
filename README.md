@@ -206,4 +206,4 @@ Config is read at import time (not per-call), so restart any process using `clau
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+This package's original additions are licensed under [Apache 2.0](LICENSE). The pattern-matching primitives (`UIPattern`, the `_try_extract` algorithm, the initial `UI_PATTERNS`, and the spinner-scan skeleton) were originally extracted from [ccbot](https://github.com/six-ddc/ccbot) by six-ddc, used under the MIT License — see [NOTICE](NOTICE) and [LICENSE-MIT-upstream.txt](LICENSE-MIT-upstream.txt).

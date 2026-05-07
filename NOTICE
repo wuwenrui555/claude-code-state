@@ -1,0 +1,28 @@
+claude-code-state
+Copyright 2026 Wenrui Wu
+
+This package includes pattern-matching primitives originally from:
+
+  ccbot (https://github.com/six-ddc/ccbot)
+  Copyright (c) 2026 six-ddc
+  Licensed under the MIT License (see LICENSE-MIT-upstream.txt)
+
+Specifically inherited from ccbot's terminal_parser.py:
+  - The UIPattern dataclass shape (name + top/bottom regex tuples + min_gap)
+  - The _try_extract iteration algorithm
+  - The initial set of UI_PATTERNS regex definitions
+  - The parse_status_line skeleton (chrome separator + spinner scan)
+  - The STATUS_SPINNERS character set
+
+Original to this package (and its predecessor ccmux-backend by the same
+author):
+  - The ClaudeState sealed union (Working / Idle / Blocked / Dead)
+  - The parse_pane top-level classifier
+  - The walkback mechanism for tool-preview extraction
+  - Pattern-drift detection with fingerprinted dedup
+  - The OVERLAY vs TODO skippable-pattern split
+  - Completion-summary filtering ("Worked for 56s" classifies as Idle)
+  - The user override system (parser_config.json + CLAUDE_CODE_STATE_DIR)
+
+All original additions and modifications are licensed under the
+Apache License, Version 2.0 (see LICENSE).
