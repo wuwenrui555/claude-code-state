@@ -1,143 +1,131 @@
 # claude-code-state
 
-Classify [Claude Code](https://claude.com/claude-code)'s runtime state
-by parsing its terminal UI.
+Classify [Claude Code](https://claude.com/claude-code)'s runtime state by parsing its terminal UI.
 
-## What it does
+## What it tells you
 
-Given a captured terminal pane (the visible text of Claude Code's
-window), classify the running instance into one of:
+A running Claude Code instance is always in exactly one of four states, defined by what you (the user) can do in each:
 
-- **Working** — actively processing. Carries the running status text
-  (e.g. `Thinking… (16s · ↑ 827 tokens · thought for 7s)`).
-- **Idle** — input box rendered, no spinner. Waiting for the user.
-- **Blocked** — input box has been replaced by a blocking UI
-  (permission prompt, AskUserQuestion, ExitPlanMode, /config, etc.).
-  Carries which UI variant matched and the extracted content (with the
-  tool preview above the prompt walked back so consumers can see what
-  the user is being asked to approve).
+- **`Idle`** — Claude has finished its turn and is waiting for your next message. Type into the input box, press Enter, and a new turn starts immediately.
+- **`Working`** — Claude is processing your previous message (thinking or running tools). You can keep typing, but Enter doesn't send until the current turn finishes; press `Esc` to interrupt instead.
+- **`Blocked`** — A dialog has covered the input box (permission prompt, plan review, `AskUserQuestion`, etc.). You can't type free text — you have to pick one of Claude's offered choices (arrow keys + Enter, or a number digit).
+- **`Dead`** — The host process has exited.
 
-The package also exposes lower-level building blocks: chrome
-detection, raw status-line extraction, and interactive-UI extraction.
+`parse_pane` classifies a captured pane into the first three states. It never returns `Dead` on its own — a frozen pane is indistinguishable from an idle one without probing the host process. If you need liveness, call `tmux display-message -p '#{pane_current_command}'` yourself and construct `Dead()` when it's not `claude` / `node`.
 
-## Why a package
+## How it classifies
 
-This logic was extracted from
-[ccmux-backend](https://github.com/wuwenrui555/ccmux-backend) where it
-drives the Telegram frontend's status updates. Anyone building a
-Claude Code observer (status indicator, dashboard, smartwatch buzz,
-LED lamp, multi-window monitor) needs the same classification. Each
-UI pattern represents a debugging session against Claude Code's
-terminal renderer; sharing the regex set means nobody has to redo the
-work.
+The pane bottom always renders one of two shapes, and the package classifies based on which.
 
-## Architecture
-
-The package is split into two concerns:
+**Input chrome** (Claude alive, input box visible):
 
 ```text
-claude_code_state/         ← parser core (zero deps, terminal-mux agnostic)
-└── capture/               ← optional helpers, one per terminal multiplexer
-    └── tmux.py            ← `tmux capture-pane` wrapper
+✻ Fermenting… (14s · thinking)
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
 ```
 
-The parser **only sees text**. Capturing the screen is a separate
-problem with implementation choices (tmux / GNU screen / zellij /
-PTY / WebSocket-to-remote). The included `capture` submodule covers
-tmux. For anything else, capture however you like and feed the
-string to `parse_pane`.
+- **Working**: spinner row with `…` above chrome (e.g., `✻ Thinking… (16s · ↑ 827 tokens · thought for 7s)`)
+- **Idle**: no spinner row above chrome, or spinner row without `…` (e.g., `✻ Worked for 2m 28s`)
+
+**Blocking UI** (input chrome replaced):
+
+```text
+──────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Read file                                                                                                
+
+  Read(/etc/passwd)                                                                                       
+
+ Do you want to proceed?                                                                                  
+ ❯ 1. Yes                                                                                                 
+   2. Yes, allow reading from etc/ during this session                                                    
+   3. No                                                                                                  
+ Esc to cancel · Tab to amend      
+```
+
+Recognized `BlockedUI` variants: `PERMISSION_PROMPT`, `ASK_USER_QUESTION`, `EXIT_PLAN_MODE`, `BASH_APPROVAL`, `RESTORE_CHECKPOINT`, `SETTINGS`. The tool-preview block above a permission prompt is walked back into the extracted `content` so consumers can show what the user is being asked to approve.
+
+The full decision tree:
+
+```text
+parse_pane(text)
+│
+├─ empty text?  ──────────────────────────────────→ None
+│
+├─ has input chrome? (────\n❯ in last 20 lines)
+│
+│   NO  ─→ try each UI_PATTERN in declaration order
+│           ├─ match  ─→ Blocked(ui, content)
+│           └─ none   ─→ None  [+ drift warning if it "looks like a prompt"]
+│
+│   YES ─→ scan up from chrome for spinner row (`· ✻ ✽ ✶ ✳ ✢`)
+│           ├─ spinner with `…`           → Working(status_text=…)
+│           └─ no spinner / completion    → Idle()
+```
+
+When `parse_pane` returns `None` (chrome absent and no UI matched), callers should fall back to their previous observation — returning `Idle()` would misreport "Claude is waiting" during a frame the package doesn't recognize.
 
 ## Install
 
 ```bash
-uv pip install -e .         # from a clone
-# or, after publishing:
-pip install claude-code-state
+# from a clone
+uv pip install -e ~/ccmux/claude-code-state
+
+# or directly from GitHub
+uv tool install git+https://github.com/wuwenrui555/claude-code-state
 ```
 
-Python ≥ 3.11. Zero runtime dependencies.
+Python ≥ 3.11. Zero runtime dependencies. The optional `claude_code_state.capture.tmux` helper shells out to the `tmux` CLI (no `libtmux` import) — install nothing extra to use it.
 
 ## Quick start
 
 ```python
-from claude_code_state import parse_pane
+from claude_code_state import parse_pane, Working, Idle, Blocked
 from claude_code_state.capture import tmux
 
 state = parse_pane(tmux.capture("my-session"))
-print(state)
-```
-
-## Usage
-
-```python
-from claude_code_state import parse_pane, Working, Idle, Blocked
-
-# Capture however you want — here, raw subprocess:
-import subprocess
-pane_text = subprocess.check_output(
-    ["tmux", "capture-pane", "-p", "-J", "-t", "my-session"], text=True,
-)
-
-state = parse_pane(pane_text)
 match state:
-    case Working(status_text=text):
-        print(f"Claude is busy: {text}")
     case Idle():
-        print("Claude is waiting for you")
+        print("waiting for you")
+    case Working(status_text=text):
+        print(f"busy: {text}")
     case Blocked(ui=which, content=body):
-        print(f"Claude is blocked on {which}:\n{body}")
+        print(f"blocked on {which}:\n{body}")
     case None:
-        pass  # Unclassifiable — keep the previous observation
+        pass  # unclassifiable; keep the previous observation
 ```
 
-For finer-grained access (e.g. you want to handle the chrome-check
-yourself):
+What `parse_pane` actually returns:
 
 ```python
-from claude_code_state import (
-    has_input_chrome, parse_status_line, extract_interactive_content,
-)
+>>> parse_pane(idle_pane)
+Idle()
 
-lines = pane_text.strip().split("\n")
-if has_input_chrome(lines):
-    status = parse_status_line(pane_text)  # str | None
-    ...
-else:
-    ui = extract_interactive_content(pane_text)  # InteractiveUIContent | None
-    ...
+>>> parse_pane(working_pane)
+Working(status_text='Thinking… (16s · ↑ 827 tokens · thought for 7s)')
+
+>>> parse_pane(permission_pane)
+Blocked(
+    ui=BlockedUI.PERMISSION_PROMPT,
+    content='Read file\n/etc/passwd\n\nDo you want to proceed?\n❯ 1. Yes\n  2. No\nEsc to cancel',
+)
 ```
 
-## How it classifies (in one paragraph)
+If you don't use tmux, capture pane text any way you like (`screen -X hardcopy`, PTY scrape, WebSocket relay, fixture file…) and feed the string to `parse_pane`.
 
-The pane bottom always renders one of two shapes. **Input chrome**
-(`────\n❯\n────\nstatus`) means Claude is alive and the input box is
-showing — Working if a spinner with `…` sits above the chrome,
-otherwise Idle. **No input chrome** means a blocking UI replaced it;
-match against `UI_PATTERNS` (permission prompt, AskUserQuestion,
-ExitPlanMode, BashApproval, RestoreCheckpoint, Settings) to extract
-the content. Completion summaries (`✻ Worked for 56s`) are
-deliberately filtered out of the Working signal — they share the
-spinner prefix but lack the `…`.
+## Pattern drift
 
-## Why no Dead state
-
-`parse_pane` never returns `Dead`. A pane alone cannot distinguish a
-running-but-frozen Claude from a dead one — the last frame stays on
-screen indistinguishable from Idle. Detect Dead by probing the host
-process (`tmux display-message -p '#{pane_current_command}'` on the
-target window, then check it's not in `{"claude", "node"}`) and
-construct `Dead()` yourself.
+Claude Code's UI evolves. When the package sees a pane that *looks* like a prompt (`Esc to ...`, `❯ 1.`, etc.) but no `UI_PATTERN` matches, it logs a one-shot warning with a 12-char fingerprint so you can grep `drift.log` for the new sample, then update `UI_PATTERNS` (built-in or user-supplied). Dedup is per-process; each unique pane fingerprint warns at most once between restarts.
 
 ## User overrides
 
-Set `CLAUDE_CODE_STATE_DIR` in the environment to enable
-configuration. The package will:
+Set `CLAUDE_CODE_STATE_DIR` to enable user-pluggable patterns and a dedicated drift log. The package will:
 
-- Load `<dir>/parser_config.json` at import time and merge user
-  overrides into the built-ins. User UI patterns prepend to built-ins
-  (try first); other constants take a union/dict-merge.
-- Write pattern-drift warnings to `<dir>/drift.log` (created lazily on
-  first warning).
+- Load `<dir>/parser_config.json` at import time and merge user overrides into the built-ins. User UI patterns prepend to built-ins (try first); other constants take a union/dict-merge.
+- Write pattern-drift warnings to `<dir>/drift.log` (created lazily on first warning).
 
 Example `parser_config.json`:
 
@@ -156,18 +144,7 @@ Example `parser_config.json`:
 }
 ```
 
-When `CLAUDE_CODE_STATE_DIR` is unset, the package runs purely on
-built-ins and drift warnings propagate through the standard
-`logging` hierarchy (logger name: `claude_code_state.drift`).
-
-## Pattern drift
-
-Claude Code's terminal UI evolves. When the package sees a pane that
-*looks* like a prompt (`Esc to ...`, `❯ 1.`, etc.) but no UI pattern
-matches, it logs a one-shot warning with a 12-char fingerprint so you
-can grep `drift.log` for the new sample, then update `UI_PATTERNS`
-(built-in or user-supplied). Dedup is per-process; each unique pane
-fingerprint warns at most once between restarts.
+When the env var is unset, the package runs purely on built-ins and drift warnings propagate through standard `logging` (logger name: `claude_code_state.drift`).
 
 ## License
 
