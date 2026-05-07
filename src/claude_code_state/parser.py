@@ -35,7 +35,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import config as _pc
-from .state import Blocked, ClaudeState, Idle, Working, BlockedUI
+from .state import Blocked, BlockedUI, ClaudeState, Idle, Working
 
 logger = logging.getLogger(__name__)
 

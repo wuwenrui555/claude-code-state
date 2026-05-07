@@ -15,7 +15,6 @@ import pytest
 
 from claude_code_state.capture import tmux
 
-
 # Skip the integration tests when tmux isn't available, but keep the
 # error-path test (it monkeypatches subprocess and doesn't need tmux).
 _HAS_TMUX = shutil.which("tmux") is not None
