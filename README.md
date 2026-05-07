@@ -1,5 +1,10 @@
 # claude-code-state
 
+[![CI](https://github.com/wuwenrui555/claude-code-state/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wuwenrui555/claude-code-state/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com)
+
 Classify the runtime state of [Claude Code](https://claude.com/claude-code) (CC) by parsing its terminal UI.
 
 ## About Claude-Code-State
