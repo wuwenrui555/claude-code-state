@@ -99,6 +99,50 @@ def test_has_input_chrome():
     assert not has_input_chrome(PERMISSION_PANE.split("\n"))
 
 
+# ---------------------------------------------------------------------------
+# AskUserQuestion variant: cursor on the "Chat about this" item.
+#
+# CC's AUQ renders an extra `─────` divider between the "Type something"
+# row and the trailing "Chat about this" row. When the cursor lands on
+# "Chat about this", the pane shows the shape `─────\n❯ N. Chat about
+# this`, which by itself looks like the top of the input chrome
+# sandwich. Without verifying the bottom separator exists too, the
+# parser misclassifies this AUQ state as Working/Idle and the host bot
+# drops the interactive UI mid-prompt.
+# ---------------------------------------------------------------------------
+
+AUQ_CHAT_ABOUT_THIS_PANE = (
+    "  ☐ Some heading\n"
+    "\n"
+    "  Pick one option to continue.\n"
+    "\n"
+    "  1. Option A\n"
+    "  2. Option B\n"
+    "  3. Option C\n"
+    "  4. Option D\n"
+    "  5. Type something.\n" + ("─" * 80) + "\n"
+    "❯ 6. Chat about this\n"
+    "\n"
+    "  Enter to select · ↑/↓ to navigate · Esc to cancel\n"
+    "\n"
+    "  [Opus 4.7 (1M context)] │ ccmux\n"
+    "  Context ████░░░░░░ 41% │ Usage ██░░░░░░░░ 17%\n"
+    "  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
+)
+
+
+def test_auq_chat_about_this_is_not_chrome():
+    """The AUQ ───\\n❯ Chat-about-this row must not register as input chrome."""
+    assert not has_input_chrome(AUQ_CHAT_ABOUT_THIS_PANE.split("\n"))
+
+
+def test_auq_chat_about_this_classifies_as_blocked():
+    """AUQ stays Blocked even when the cursor is on the trailing chat item."""
+    state = parse_pane(AUQ_CHAT_ABOUT_THIS_PANE)
+    assert isinstance(state, Blocked)
+    assert state.ui == BlockedUI.ASK_USER_QUESTION
+
+
 def test_parse_status_line_returns_text_for_working():
     text = parse_status_line(WORKING_PANE)
     assert text is not None

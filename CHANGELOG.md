@@ -4,6 +4,24 @@ All notable changes to `claude-code-state` are documented here. The
 format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-05-07
+
+### Fixed
+
+- `has_input_chrome` no longer matches the AskUserQuestion pane shape
+  where the cursor sits on the trailing "Chat about this" item. CC's
+  AUQ inserts a full-width `─` divider between "Type something" and
+  "Chat about this"; the prior implementation flagged the resulting
+  `─\n❯ N. Chat about this` pattern as input chrome, so `parse_pane`
+  short-circuited to Idle and downstream consumers (e.g. host bots
+  rendering the Blocked state) dropped the interactive UI mid-prompt
+  whenever the user navigated to the chat row. The check now requires
+  the full chrome sandwich — top separator, `❯` line (with up to
+  several continuation lines for multi-line input), and a bottom
+  separator — so unrelated occurrences of `─\n❯` inside other UIs
+  no longer trigger a false positive. AUQ classifies as `Blocked` for
+  every cursor position.
+
 ## [0.3.0] - 2026-05-07
 
 ### Added
