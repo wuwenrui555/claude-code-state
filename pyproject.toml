@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 license = { file = "LICENSE" }
 keywords = ["claude-code", "tmux", "parser", "state-detection", "tui"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 7 - Inactive",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Terminals",
