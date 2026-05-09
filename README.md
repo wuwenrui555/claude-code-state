@@ -5,6 +5,25 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com)
 
+> ## ⚠️ Deprecated
+>
+> `claude-code-state` is **superseded by
+> [ccmux-state](https://github.com/wuwenrui555/ccmux-state)** as of
+> 2026-05-09. ccmux-state replaces the pure-pane classification
+> approach with a tap-event-driven state monitor that uses pane reads
+> only to refine each tick's State, eliminating most of the brittle
+> UI-pattern matching this package relies on.
+>
+> Three pane primitives (`has_input_chrome`, `parse_status_line`,
+> `capture_pane`) live on inside ccmux-state with attribution. The
+> rest of this package's API (`parse_pane`, `BlockedUI`,
+> `extract_interactive_content`, the UI pattern table) has no
+> successor: tap's `permission_request.tool_name` field replaces it.
+>
+> No further releases are planned. The 0.3.x line continues to work
+> against current Claude Code releases as long as the TUI shapes it
+> empirically observed remain in place.
+
 Classify the runtime state of [Claude Code](https://claude.com/claude-code) (CC) by parsing its terminal UI.
 
 ## About Claude-Code-State
