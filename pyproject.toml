@@ -1,13 +1,13 @@
 [project]
 name = "claude-code-state"
-version = "0.3.1"
+version = "0.3.2"
 description = "Classify Claude Code's runtime state (Working / Idle / Blocked) by parsing its terminal UI."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 keywords = ["claude-code", "tmux", "parser", "state-detection", "tui"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 7 - Inactive",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Terminals",
